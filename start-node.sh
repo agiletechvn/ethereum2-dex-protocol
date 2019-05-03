@@ -1,5 +1,6 @@
 DATA_DIR=$PWD/datadir
 KEYSTORE_DIR=$DATA_DIR/keystore
+# NAME:-novalex
 
 account=$(
   geth account list --datadir $DATA_DIR  --keystore $KEYSTORE_DIR \
@@ -8,23 +9,25 @@ account=$(
   | cut -d"{" -f 2 | cut -d"}" -f 1
 )
 
-geth \
-  --verbosity 4 \
-  --datadir $DATA_DIR \
+echo "$account"
+
+geth --datadir $DATA_DIR \
   --keystore $KEYSTORE_DIR \
-  --identity $NAME \
-  --unlock 0x$account \
-  --networkid 89 \
+  --networkid 8888 \
   --port 30303 \
   --rpc \
-  --rpccorsdomain "*" \
+  --rpcapi 'db,eth,net,web3,admin,personal,miner' \
+  --rpccorsdomain '*' \
   --rpcaddr 0.0.0.0 \
   --rpcport 8545 \
-  --rpcvhosts "*" \
+  --rpcvhosts '*' \
   --ws \
   --wsaddr 0.0.0.0 \
   --wsport 8546 \
-  --wsorigins "*" \
+  --wsorigins '*' \
   --mine \
-  --gasprice "1" \
-  --targetgaslimit "420000000"
+  --minerthreads=1 \
+  --unlock 0x$account \
+  --etherbase=0x0000000000000000000000000000000000000000 \
+  --allow-insecure-unlock \
+  --targetgaslimit 420000000

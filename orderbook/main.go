@@ -299,15 +299,20 @@ func updateEthService() {
 	// make full node after start the node, then later register swarm service over that node
 	ethConfig, err := initGenesis(thisNode)
 	ethConfig.Miner.Etherbase = crypto.PubkeyToAddress(privkey.PublicKey)
+
 	if err != nil {
 		panic(err.Error())
+	} else {
+		demo.LogInfo("Etherbase:", "base", ethConfig.Miner.Etherbase)
 	}
 
 	// register ethservice with genesis block
 	utils.RegisterEthService(thisNode, ethConfig)
 
+	// start the nodes
+	err = thisNode.Start()
 	if err != nil {
-		demo.LogCrit("servicenode pss register fail", "err", err)
+		demo.LogCrit("servicenode start failed", "err", err)
 	}
 
 	// config ethereum
@@ -317,6 +322,7 @@ func updateEthService() {
 	}
 
 	// config ethereum gas price
+	demo.LogInfo("Gas price: ", "price", ethConfig.Miner.GasPrice)
 	ethereum.TxPool().SetGasPrice(ethConfig.Miner.GasPrice)
 
 	password := "123456789"
@@ -355,8 +361,8 @@ func startup(p2pPort int, httpPort int, wsPort int, name string, privateKey stri
 
 	// register pss and orderbook service
 	rpcapi := []string{
-		// "eth",
-		// "ssh",
+		"eth",
+		"web3",
 		"orderbook",
 	}
 	dataDir := fmt.Sprintf("%s%d", demo.DatadirPrefix, p2pPort)
@@ -379,14 +385,15 @@ func startup(p2pPort int, httpPort int, wsPort int, name string, privateKey stri
 		demo.LogCrit(err.Error())
 	}
 
+	// // start the nodes
+	// err = thisNode.Start()
+	// if err != nil {
+	// 	demo.LogCrit("servicenode start failed", "err", err)
+	// }
+
 	// extra service like eth, swarm need more work
 	updateExtraService(rpcapi)
 
-	// start the nodes
-	err = thisNode.Start()
-	if err != nil {
-		demo.LogCrit("servicenode start failed", "err", err)
-	}
 	addNode(nodeaddr)
 }
 
