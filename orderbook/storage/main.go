@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb/leveldb"
 	"github.com/novalex/orderbook/common/math"
@@ -36,6 +36,7 @@ var (
 	chaindb         *leveldb.Database
 	statedb         *state.StateDB
 	blockNumber     uint64
+	headHash        common.Hash
 )
 
 // geth init genesis.json --datadir .datadir
@@ -50,11 +51,11 @@ func init() {
 
 	chaindb, _ = leveldb.New(datadir, 0, 0, "novalex")
 
-	// headHash := rawdb.ReadHeadBlockHash(chaindb)
-	// blockNumber := *rawdb.ReadHeaderNumber(chaindb, headHash)
+	headHash = rawdb.ReadHeadBlockHash(chaindb)
+	blockNumber = *rawdb.ReadHeaderNumber(chaindb, headHash)
 
-	headHash := core.GetHeadBlockHash(chaindb)
-	blockNumber = core.GetBlockNumber(chaindb, headHash)
+	// headHash := core.GetHeadBlockHash(chaindb)
+	// blockNumber = core.GetBlockNumber(chaindb, headHash)
 
 	// Initialize the CLI app and start novalex
 	app.Commands = []cli.Command{
@@ -81,14 +82,14 @@ func init() {
 
 func main() {
 
-	// headHash := rawdb.ReadCanonicalHash(chaindb, number)
-	// headerNumber := rawdb.ReadHeaderNumber(chaindb, headHash)
-	// block := rawdb.ReadBlock(chaindb, headHash, *headerNumber)
+	// headHash := rawdb.ReadCanonicalHash(chaindb, blockNumber)
+	headerNumber := rawdb.ReadHeaderNumber(chaindb, headHash)
+	block := rawdb.ReadBlock(chaindb, headHash, *headerNumber)
 
-	headHash := core.GetCanonicalHash(chaindb, blockNumber)
+	// headHash := core.GetCanonicalHash(chaindb, blockNumber)
 	// currentHeader = core.GetHeader(chaindb, headHash, number)
-	blockNumber := core.GetBlockNumber(chaindb, headHash)
-	block := core.GetBlock(chaindb, headHash, blockNumber)
+	// blockNumber := core.GetBlockNumber(chaindb, headHash)
+	// block := core.GetBlock(chaindb, headHash, blockNumber)
 
 	if block == nil {
 		return
@@ -96,8 +97,10 @@ func main() {
 
 	database := state.NewDatabase(chaindb)
 
-	headerRootHash := block.Header().Root
-	headHeaderHash := core.GetHeadHeaderHash(chaindb)
+	// headerRootHash := block.Header().Root
+	headerRootHash := common.HexToHash("0x979b779ba4b9e5579070ad3a7c4e7b64803aee814fdfed89bb4fe3b455bddedb")
+	// headHeaderHash := core.GetHeadHeaderHash(chaindb)
+	headHeaderHash := rawdb.ReadHeadBlockHash(chaindb)
 	statedb, _ = state.New(headHeaderHash, database)
 	if statedb == nil {
 		headHeaderHash = headerRootHash
@@ -211,10 +214,16 @@ func updateContract(methodName string, args []string) error {
 
 	// commit
 	root := statedb.IntermediateRoot(false)
+	// root := common.HexToHash("0x979b779ba4b9e5579070ad3a7c4e7b64803aee814fdfed89bb4fe3b455bddedb")
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 	fmt.Printf("New header root :%v\n", root.Hex())
-	return core.WriteHeadHeaderHash(chaindb, root)
+
+	// return core.WriteHeadHeaderHash(chaindb, root)
+	rawdb.WriteHeadHeaderHash(chaindb, root)
+	// rawdb.WriteCanonicalHash(chaindb, headHash, blockNumber)
+
+	return nil
 
 }
 
